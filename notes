@@ -1,0 +1,44 @@
+class Person < ActiveRecord::Base
+  belongs_to :role
+end
+
+class Role < ActiveRecord::Base
+  has_many :people
+end
+
+Person.all.joins(:role) -->
+SELECT 'people'.*
+FROM 'people'
+INNER JOIN 'roles'
+  ON 'roles'.'id' = 'people'.'role-id';
+
+Person.all.joins(:role).where(roles: {billable: true})
+
+Need to find people who are billable. Weird to do it from the person model. Nice to do that from the role model -->
+
+Role.where(billable: true)
+
+^it would be nice to combine that with the query on people so...
+
+class Role < ActiveRecord::Base
+  def self.billable
+    where(billable: true)
+  end
+end
+
+^bc of that you can just do Role.billable
+
+^also can merge an active record relation object. Role.billable is the active relation object
+
+Will get PG::UndefinedTable: ERROR: missing FROM-clause entry for table
+'roles' LINE 1: SELECT * FROM 'people' WHERE 'roles'.'billable' etc
+
+need to tell activerecord, btw you're going to be working with your role association so join that in.
+
+class Person < ActiveRecord::Base
+  def self.billable
+    joins(:role).merge(Role.billable)
+  end
+end
+
+^Person.billable and will get all the billable roles
